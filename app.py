@@ -48,6 +48,7 @@ class MemoryManager:
         self.resources = [Resource() for _ in range(NUM_RECURSOS)]  # Lista de recursos
         self.process_memory_map = {}  # Mapa para rastrear la memoria ocupada por cada proceso
 
+    # Añade un proceso según el algoritmo seleccionado
     def add_process(self, process):
         if self.algorithm == "Paginacion":
             return self.add_process_pagination(process)
@@ -77,13 +78,11 @@ class MemoryManager:
                 pages_freed = self.process_memory_map.pop(process.id)
                 self.used_memory -= pages_freed * self.page_size
                 self.free_memory += pages_freed * self.page_size
-                # Asegúrate de que la memoria no se vuelva negativa
                 self.used_memory = max(self.used_memory, 0)
                 self.free_memory = min(self.free_memory, self.total_memory)
         elif self.algorithm == "Compactación":
             self.used_memory -= process.size_memory
             self.free_memory += process.size_memory
-            # Asegúrate de que la memoria no se vuelva negativa
             self.used_memory = max(self.used_memory, 0)
             self.free_memory = min(self.free_memory, self.total_memory)
 
@@ -128,7 +127,6 @@ class ProcessManager:
                 self.waiting_queue.append(process)
                 self.ready_queue.remove(process)
             else:
-                # Simula la ejecución del proceso
                 time.sleep(process.execution_time)
                 process.release_resource()
                 self.memory_manager.release_memory(process)
@@ -139,7 +137,7 @@ class ProcessManager:
         self.update_ready_queue()
 
     def update_ready_queue(self):
-        # Actualiza la ready queue al verificar la waiting queue
+        # Actualiza la ready queue verificando la waiting queue
         for process in self.waiting_queue:
             if not process.blocked and self.memory_manager.add_process(process):
                 self.ready_queue.append(process)
@@ -185,6 +183,8 @@ class ProcessWorkerThread(QThread):
                 self.process_updated.emit(process)  # Actualiza el proceso en ejecución
                 self.finished.emit(process)
             time.sleep(0.01)
+
+
 
 
 class ProcessSimulatorGUI(QMainWindow):
