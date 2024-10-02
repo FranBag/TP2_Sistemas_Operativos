@@ -41,40 +41,51 @@ class Resource:
 class MemoryManager:
     def __init__(self, total_memory, algorithm):
         self.total_memory = total_memory
-        self.algorithm = algorithm # Algoritmo que utilizará
+        self.algorithm = algorithm  # Algoritmo que utilizará
         self.used_memory = 0
         self.free_memory = total_memory
         self.page_size = 100
-        self.resources = [Resource() for i in range(NUM_RECURSOS)] # Lista de recursos
+        self.resources = [Resource() for _ in range(NUM_RECURSOS)]  # Lista de recursos
+        self.process_memory_map = {}  # Mapa para rastrear la memoria ocupada por cada proceso
 
     def add_process(self, process):
         if self.algorithm == "Paginacion":
-            # Administración de memoria por paginación
-            if self.free_memory >= process.size_memory:
-                self.used_memory += process.size_memory
-                self.free_memory -= process.size_memory
-                return True
-            else:
-                return False
+            return self.add_process_pagination(process)
         elif self.algorithm == "Compactación":
-            # Administración de memoria por compactación
-            if self.free_memory >= process.size_memory:
-                self.used_memory += process.size_memory
-                self.free_memory -= process.size_memory
-                return True
-            else:
-                return False
+            return self.add_process_compaction(process)
         return False
 
+    def add_process_pagination(self, process):
+        required_pages = (process.size_memory + self.page_size - 1) // self.page_size
+        if self.free_memory >= required_pages * self.page_size:
+            self.used_memory += required_pages * self.page_size
+            self.free_memory -= required_pages * self.page_size
+            self.process_memory_map[process.id] = required_pages  # Guardar cuántas páginas ocupó
+            return True
+        return False
     
+    def add_process_compaction(self, process):
+        if self.free_memory >= process.size_memory:
+            self.used_memory += process.size_memory
+            self.free_memory -= process.size_memory
+            return True
+        return False
+
     def release_memory(self, process):
         if self.algorithm == "Paginacion":
-            self.used_memory -= process.size_memory
-            self.free_memory += process.size_memory
+            if process.id in self.process_memory_map:
+                pages_freed = self.process_memory_map.pop(process.id)
+                self.used_memory -= pages_freed * self.page_size
+                self.free_memory += pages_freed * self.page_size
+                # Asegúrate de que la memoria no se vuelva negativa
+                self.used_memory = max(self.used_memory, 0)
+                self.free_memory = min(self.free_memory, self.total_memory)
         elif self.algorithm == "Compactación":
             self.used_memory -= process.size_memory
             self.free_memory += process.size_memory
-
+            # Asegúrate de que la memoria no se vuelva negativa
+            self.used_memory = max(self.used_memory, 0)
+            self.free_memory = min(self.free_memory, self.total_memory)
 
     def get_memory_status(self):
         if self.algorithm == "Paginacion":
