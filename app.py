@@ -74,6 +74,7 @@ class MemoryManager:
             self.used_memory -= process.size_memory
             self.free_memory += process.size_memory
 
+
     def get_memory_status(self):
         if self.algorithm == "Paginacion":
             return {
@@ -88,6 +89,7 @@ class MemoryManager:
                 "used": self.used_memory,
                 "free": self.free_memory,
             }
+
 
 # Clase del administrador de procesos
 class ProcessManager:
@@ -138,7 +140,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QComboBox
 )
-
 import sys
 import random
 from PyQt5.QtWidgets import (
@@ -153,10 +154,7 @@ from PyQt5.QtWidgets import (
     QLabel,
 )
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal
-
-
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
-import time  # Para simular una tarea de larga duración
 
 
 class ProcessWorkerThread(QThread):
@@ -283,7 +281,11 @@ class ProcessSimulatorGUI(QMainWindow):
         if not self.process_manager.ready_queue and not self.process_manager.waiting_queue:
             selected_algorithm = self.algorithm_combo.currentText()
             self.process_manager.memory_manager.algorithm = selected_algorithm
-            self.algorithm_label.setText(f"Algoritmo usado: {selected_algorithm}")
+            if selected_algorithm == "Paginacion":
+                pages = self.process_manager.memory_manager.get_memory_status()["pages"]
+                self.algorithm_label.setText(f"Algoritmo usado: {selected_algorithm}, Páginas: {pages}")
+            else:
+                self.algorithm_label.setText(f"Algoritmo usado: {selected_algorithm}")
 
     def add_process(self):
         # Genera valores aleatorios para el proceso
@@ -322,11 +324,15 @@ class ProcessSimulatorGUI(QMainWindow):
         self.update_current_memory()
         self.update_finished_table()
         self.update_memory_progress()
-        self.update_resources_table()  # Actualiza la tabla de recursos
+        self.update_resources_table()
 
-        # Activar el combobox si no hay procesos en ejecución
+        # Activa combobox si no se está en ejecución
         if not self.process_manager.ready_queue and not self.process_manager.waiting_queue:
             self.algorithm_combo.setDisabled(False)
+
+        if self.process_manager.memory_manager.algorithm == "Paginacion":
+            pages = self.process_manager.memory_manager.get_memory_status()["pages"]
+            self.algorithm_label.setText(f"Algoritmo usado: {self.process_manager.memory_manager.algorithm}, Páginas: {pages}")
 
     def update_table(self, table, queue):
         table.setRowCount(len(queue))
