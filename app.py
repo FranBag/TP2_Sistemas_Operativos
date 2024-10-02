@@ -3,18 +3,18 @@ import threading
 import time
 
 
-# Clase para representar los procesos
+# Clase de procesos
 class Process:
     def __init__(self, id, size_memory, execution_time):
         self.id = id
         self.size_memory = size_memory
         self.execution_time = execution_time
         self.state = "Listo"
-        self.resource = None  # Recurso al que accede el proceso
-        self.blocked = False  # Estado de bloqueo
+        self.resource = None  # Recurso que utilizará el proceso
+        self.blocked = False  
 
+    # Pide un recurso alteatorio
     def request_resource(self, resources):
-        # El proceso solicita un recurso de forma aleatoria
         self.resource = random.choice(resources)
         if self.resource.locked:
             self.blocked = True
@@ -23,6 +23,7 @@ class Process:
             self.resource.locked = True
             self.state = "Ejecutando"
 
+    # libera un recurso
     def release_resource(self):
         if self.resource:
             self.resource.locked = False
@@ -30,26 +31,25 @@ class Process:
             self.state = "Listo"
 
 
-# Clase para representar un recurso
+# Clase de recurso
 class Resource:
     def __init__(self):
-        self.locked = False  # Indica si el recurso está en uso
+        self.locked = False  # Estado del recurso
 
 
 # Clase para administrar la memoria
 class MemoryManager:
     def __init__(self, total_memory, algorithm):
         self.total_memory = total_memory
-        self.algorithm = algorithm
+        self.algorithm = algorithm # Algoritmo que utilizará
         self.used_memory = 0
         self.free_memory = total_memory
-        self.page_size = 100  # Tamaño de cada página en KB
-        self.resources = [Resource() for _ in range(NUM_RECURSOS)]
+        self.page_size = 100
+        self.resources = [Resource() for i in range(NUM_RECURSOS)] # Lista de recursos
 
     def add_process(self, process):
-        if self.algorithm == "Paginación":
+        if self.algorithm == "Paginacion":
             # Administración de memoria por paginación
-            pages_required = (process.size_memory + self.page_size - 1) // self.page_size
             if self.free_memory >= process.size_memory:
                 self.used_memory += process.size_memory
                 self.free_memory -= process.size_memory
@@ -67,7 +67,7 @@ class MemoryManager:
         return False
 
     def release_memory(self, process):
-        if self.algorithm == "Paginación":
+        if self.algorithm == "Paginacion":
             self.used_memory -= process.size_memory
             self.free_memory += process.size_memory
         elif self.algorithm == "Compactación":
@@ -75,7 +75,7 @@ class MemoryManager:
             self.free_memory += process.size_memory
 
     def get_memory_status(self):
-        if self.algorithm == "Paginación":
+        if self.algorithm == "Paginacion":
             return {
                 "total": self.total_memory,
                 "used": self.used_memory,
@@ -89,7 +89,7 @@ class MemoryManager:
                 "free": self.free_memory,
             }
 
-
+# Clase del administrador de procesos
 class ProcessManager:
     def __init__(self, total_memory, algorithm):
         self.memory_manager = MemoryManager(total_memory, algorithm)
@@ -97,37 +97,40 @@ class ProcessManager:
         self.waiting_queue = []
 
     def add_process(self, process):
+        # Intenta agregar el proceso a la memoria
         if self.memory_manager.add_process(process):
             self.ready_queue.append(process)
         else:
+            # Si no entra en la memoria se lo manda a la waiting queue
             self.waiting_queue.append(process)
 
     def run_processes(self):
+        self.update_ready_queue()
         for process in self.ready_queue:
             process.request_resource(self.memory_manager.resources)
 
             if process.blocked:
+                # Mover a la waiting queue si está bloqueado
                 self.waiting_queue.append(process)
                 self.ready_queue.remove(process)
             else:
-                # Simulación de ejecución del proceso
+                # Simula la ejecución del proceso
                 time.sleep(process.execution_time)
                 process.release_resource()
                 self.memory_manager.release_memory(process)
                 self.ready_queue.remove(process)
-
-                # Agregar proceso terminado
-                process.state = "Terminado"  # Actualizar el estado del proceso
-                return process  # Devolver el proceso terminado
+                process.state = "Terminado"
+                return process 
 
         self.update_ready_queue()
 
     def update_ready_queue(self):
-        # Mueve los procesos bloqueados de nuevo a la cola lista si su recurso se ha liberado
+        # Actualiza la ready queue al verificar la waiting queue
         for process in self.waiting_queue:
-            if not process.blocked:
+            if not process.blocked and self.memory_manager.add_process(process):
                 self.ready_queue.append(process)
                 self.waiting_queue.remove(process)
+
 
 
 from PyQt5.QtWidgets import (
@@ -192,7 +195,7 @@ class ProcessSimulatorGUI(QMainWindow):
 
         # Sección de selección de algoritmo
         self.algorithm_combo = QComboBox()
-        self.algorithm_combo.addItems(["Paginación", "Compactación"])
+        self.algorithm_combo.addItems(["Paginacion", "Compactación"])
         self.algorithm_combo.currentTextChanged.connect(self.update_algorithm)
         main_layout.addWidget(QLabel("Seleccionar algoritmo de memoria:"))
         main_layout.addWidget(self.algorithm_combo)
@@ -369,9 +372,9 @@ class ProcessSimulatorGUI(QMainWindow):
 
 
 
-MEMORIA = 1000  # Memoria total en KB
-ALGORITMO = "Paginación"  # Puede ser "Paginación" o "Compactación"
-NUM_RECURSOS = 3  # Número de recursos
+MEMORIA = 1000  # Memoria total
+ALGORITMO = "Paginacion"  # Puede ser "Paginacion" o "Compactación"
+NUM_RECURSOS = 3  # Cantidad de recursos
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
