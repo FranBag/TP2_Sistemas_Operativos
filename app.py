@@ -66,6 +66,7 @@ class MemoryManager:
                 return False
         return False
 
+    
     def release_memory(self, process):
         if self.algorithm == "Paginacion":
             self.used_memory -= process.size_memory
@@ -159,9 +160,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
 
 class ProcessWorkerThread(QThread):
     finished = pyqtSignal(Process)  # Señal para emitir cuando un proceso ha terminado
-    process_updated = pyqtSignal(
-        Process
-    )  # Señal para actualizar el proceso en ejecución
+    process_updated = pyqtSignal(Process) # Señal para actualizar el proceso en ejecución
 
     def __init__(self, process_manager, parent=None):
         super().__init__(parent)
@@ -174,7 +173,7 @@ class ProcessWorkerThread(QThread):
             if process:
                 self.process_updated.emit(process)  # Actualiza el proceso en ejecución
                 self.finished.emit(process)
-            time.sleep(0.01)  # Ajusta este tiempo según sea necesario
+            time.sleep(0.01)
 
 
 class ProcessSimulatorGUI(QMainWindow):
@@ -188,20 +187,18 @@ class ProcessSimulatorGUI(QMainWindow):
     def initUI(self):
         self.setWindowTitle("Simulador de Procesos")
 
-        # Layout principal
         main_layout = QVBoxLayout()
 
-        # Sección de selección de algoritmo
+        # Combobox de selección de algortimo
         self.algorithm_combo = QComboBox()
         self.algorithm_combo.addItems(["Paginacion", "Compactación"])
         self.algorithm_combo.currentTextChanged.connect(self.update_algorithm)
         main_layout.addWidget(QLabel("Seleccionar algoritmo de memoria:"))
         main_layout.addWidget(self.algorithm_combo)
 
-        # Sección de tablas
         tables_layout = QHBoxLayout()
 
-        # Ready Queue Section
+        # Tabla de Ready Queue 
         ready_queue_layout = QVBoxLayout()
         ready_label = QLabel("Ready Queue")
         self.ready_table = QTableWidget(0, 4)
@@ -211,7 +208,7 @@ class ProcessSimulatorGUI(QMainWindow):
         ready_queue_layout.addWidget(ready_label)
         ready_queue_layout.addWidget(self.ready_table)
 
-        # Waiting Queue Section
+        # Tabla de Waiting Queue
         waiting_queue_layout = QVBoxLayout()
         waiting_label = QLabel("Waiting Queue")
         self.waiting_table = QTableWidget(0, 4)
@@ -221,7 +218,7 @@ class ProcessSimulatorGUI(QMainWindow):
         waiting_queue_layout.addWidget(waiting_label)
         waiting_queue_layout.addWidget(self.waiting_table)
 
-        # Recursos Section
+        # Tabla de Recursos
         resources_layout = QVBoxLayout()
         resources_label = QLabel("Estado de Recursos")
         self.resources_table = QTableWidget(0, 2)
@@ -229,13 +226,12 @@ class ProcessSimulatorGUI(QMainWindow):
         resources_layout.addWidget(resources_label)
         resources_layout.addWidget(self.resources_table)
 
-        # Añadir las secciones a la interfaz
         tables_layout.addLayout(ready_queue_layout)
         tables_layout.addLayout(waiting_queue_layout)
         tables_layout.addLayout(resources_layout)
         main_layout.addLayout(tables_layout)
 
-        # Sección del proceso en ejecución
+        # Proceso en ejecución
         self.current_memory_label = QLabel(
             f"Memoria actual: {self.process_manager.memory_manager.free_memory}"
         )
@@ -248,7 +244,7 @@ class ProcessSimulatorGUI(QMainWindow):
         main_layout.addWidget(self.current_process_label)
         main_layout.addWidget(self.algorithm_label)
 
-        # Barra de Progreso de Memoria
+        # Barra de uso memoria
         self.memory_progress_bar = QProgressBar()
         self.memory_progress_bar.setMaximum(self.process_manager.memory_manager.total_memory)
         main_layout.addWidget(self.memory_progress_bar)
@@ -267,16 +263,16 @@ class ProcessSimulatorGUI(QMainWindow):
         self.add_process_button.clicked.connect(self.add_process)
         main_layout.addWidget(self.add_process_button)
 
-        # Configuración de la ventana principal
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Temporizador para actualizar la interfaz
+        # Actualizar interfaz
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_interface)
-        self.timer.start(100)  # Actualizar cada 100 ms
+        self.timer.start(100)
 
+    # Actualiza la interfaz dependiendo del algoritmo seleccionado
     def update_algorithm(self):
         if not self.process_manager.ready_queue and not self.process_manager.waiting_queue:
             selected_algorithm = self.algorithm_combo.currentText()
@@ -287,22 +283,24 @@ class ProcessSimulatorGUI(QMainWindow):
             else:
                 self.algorithm_label.setText(f"Algoritmo usado: {selected_algorithm}")
 
+    # Crea un nuevo proceso
     def add_process(self):
-        # Genera valores aleatorios para el proceso
+
         id = (
             len(self.process_manager.ready_queue)
             + len(self.process_manager.waiting_queue)
             + len(self.finished_processes)
         )
-        size_memory = random.randint(50, 200)  # Cambia los límites aquí según lo necesites
+        # Valores aleatorios para el proceso
+        size_memory = random.randint(50, 200)
         execution_time = random.randint(1, 5)
 
-        # Crea el nuevo proceso y lo agrega al ProcessManager
         new_process = Process(id, size_memory, execution_time)
         self.process_manager.add_process(new_process)
 
         self.update_interface()
 
+    #AAAAAAAAAAA
     def start_process_thread(self):
         if (self.process_manager.ready_queue) and (
             self.current_thread is None or not self.current_thread.isRunning()
@@ -314,9 +312,9 @@ class ProcessSimulatorGUI(QMainWindow):
             self.current_thread.finished.connect(self.add_to_finished_processes)
             self.current_thread.start()
 
-            # Desactivar el combobox mientras hay procesos en ejecución
             self.algorithm_combo.setDisabled(True)
 
+    # Actualiza la interfaz
     def update_interface(self):
         self.start_process_thread()
         self.update_table(self.ready_table, self.process_manager.ready_queue)
@@ -326,7 +324,6 @@ class ProcessSimulatorGUI(QMainWindow):
         self.update_memory_progress()
         self.update_resources_table()
 
-        # Activa combobox si no se está en ejecución
         if not self.process_manager.ready_queue and not self.process_manager.waiting_queue:
             self.algorithm_combo.setDisabled(False)
 
